@@ -1,5 +1,7 @@
 """DevContext CLI - Resume any project in 30 seconds."""
 
+import shutil
+import subprocess
 import webbrowser
 from datetime import datetime
 from pathlib import Path
@@ -13,17 +15,39 @@ from rich.text import Text
 
 from . import __version__
 from .capture import GitCapture
-from .config import use_emoji
+from .config import use_emoji, get_model, DATA_DIR
 from .db import Database
 from .summary import OllamaSummarizer
 from .utils import format_time_ago, format_duration
 
 console = Console()
 
+
 # Emoji helpers
 def e(emoji: str, fallback: str = "") -> str:
     """Return emoji if enabled, otherwise fallback."""
     return emoji if use_emoji() else fallback
+
+
+def find_project_root(db: Database, start_path: Path) -> Optional[tuple]:
+    """Find project root by walking up directory tree.
+
+    Returns (project, is_child) tuple where is_child indicates if we're in a subdirectory.
+    """
+    current = start_path.resolve()
+
+    # First check exact match
+    project = db.get_project_by_path(str(current))
+    if project:
+        return (project, False)
+
+    # Walk up to find parent project
+    for parent in current.parents:
+        project = db.get_project_by_path(str(parent))
+        if project:
+            return (project, True)
+
+    return None
 
 
 @click.group()
@@ -67,11 +91,15 @@ def start():
     """Start a new work session."""
     cwd = Path.cwd()
     db = Database()
-    project = db.get_project_by_path(str(cwd))
+    result = find_project_root(db, cwd)
 
-    if not project:
+    if not result:
         console.print(f"{e('❌')} Project not initialized. Run [bold]devctx init[/bold] first.")
         return
+
+    project, is_child = result
+    if is_child:
+        console.print(f"{e('📁')} Using parent project: [bold]{project.name}[/bold]")
 
     # Check for existing active session
     active = db.get_active_session(project.id)
@@ -105,11 +133,13 @@ def end():
     """End current session and generate summary."""
     cwd = Path.cwd()
     db = Database()
-    project = db.get_project_by_path(str(cwd))
+    result = find_project_root(db, cwd)
 
-    if not project:
+    if not result:
         console.print(f"{e('❌')} Project not initialized. Run [bold]devctx init[/bold] first.")
         return
+
+    project, _ = result
 
     session = db.get_active_session(project.id)
     if not session:
@@ -159,11 +189,13 @@ def note(text: tuple[str, ...]):
     """Add a note to current session."""
     cwd = Path.cwd()
     db = Database()
-    project = db.get_project_by_path(str(cwd))
+    result = find_project_root(db, cwd)
 
-    if not project:
+    if not result:
         console.print(f"{e('❌')} Project not initialized. Run [bold]devctx init[/bold] first.")
         return
+
+    project, _ = result
 
     session = db.get_active_session(project.id)
     if not session:
@@ -180,11 +212,13 @@ def resume():
     """Get context summary for current project."""
     cwd = Path.cwd()
     db = Database()
-    project = db.get_project_by_path(str(cwd))
+    result = find_project_root(db, cwd)
 
-    if not project:
+    if not result:
         console.print(f"{e('❌')} Project not initialized. Run [bold]devctx init[/bold] first.")
         return
+
+    project, _ = result
 
     # Get last session
     last_session = db.get_last_session(project.id)
@@ -257,11 +291,13 @@ def status():
     """Show current session status."""
     cwd = Path.cwd()
     db = Database()
-    project = db.get_project_by_path(str(cwd))
+    result = find_project_root(db, cwd)
 
-    if not project:
+    if not result:
         console.print(f"{e('❌')} Project not initialized. Run [bold]devctx init[/bold] first.")
         return
+
+    project, _ = result
 
     session = db.get_active_session(project.id)
 
@@ -326,10 +362,11 @@ def history(project_name: Optional[str], limit: int):
             console.print(f"{e('❌')} Project '{project_name}' not found.")
             return
     else:
-        project = db.get_project_by_path(str(cwd))
-        if not project:
+        result = find_project_root(db, cwd)
+        if not result:
             console.print(f"{e('❌')} Project not initialized. Run [bold]devctx init[/bold] first.")
             return
+        project, _ = result
 
     sessions = db.get_recent_sessions(project.id, limit=limit)
 
@@ -357,6 +394,136 @@ def history(project_name: Optional[str], limit: int):
             console.print(f"   {e('📝')} {len(notes)} note(s)")
 
         console.print()
+
+
+@main.command()
+def doctor():
+    """Check system health and dependencies."""
+    console.print(f"\n{e('🩺')} DevContext Health Check\n")
+
+    all_ok = True
+
+    # Check database
+    try:
+        db = Database()
+        projects = db.list_projects()
+        console.print(f"{e('✅', '[OK]')} Database: {len(projects)} project(s) tracked")
+    except Exception as ex:
+        console.print(f"{e('❌', '[ERR]')} Database: {ex}")
+        all_ok = False
+
+    # Check data directory
+    if DATA_DIR.exists():
+        console.print(f"{e('✅', '[OK]')} Data directory: {DATA_DIR}")
+    else:
+        console.print(f"{e('⚠️', '[WARN]')} Data directory not created yet")
+
+    # Check Ollama installed
+    ollama_path = shutil.which("ollama")
+    if ollama_path:
+        console.print(f"{e('✅', '[OK]')} Ollama binary: {ollama_path}")
+    else:
+        console.print(f"{e('❌', '[ERR]')} Ollama: Not installed")
+        console.print(f"         Install from: https://ollama.ai")
+        all_ok = False
+
+    # Check Ollama running
+    summarizer = OllamaSummarizer()
+    if summarizer.is_available():
+        console.print(f"{e('✅', '[OK]')} Ollama service: Running")
+
+        # Check model
+        model = get_model()
+        if summarizer.has_model():
+            console.print(f"{e('✅', '[OK]')} Model: {model} available")
+        else:
+            console.print(f"{e('❌', '[ERR]')} Model: {model} not found")
+            console.print(f"         Run: ollama pull {model}")
+            all_ok = False
+    else:
+        console.print(f"{e('❌', '[ERR]')} Ollama service: Not running")
+        console.print(f"         Run: ollama serve")
+        all_ok = False
+
+    # Check git
+    git_path = shutil.which("git")
+    if git_path:
+        console.print(f"{e('✅', '[OK]')} Git: {git_path}")
+    else:
+        console.print(f"{e('⚠️', '[WARN]')} Git: Not found (git features disabled)")
+
+    console.print()
+    if all_ok:
+        console.print(f"{e('🎉')} All systems operational!")
+    else:
+        console.print(f"{e('⚠️', '!')} Some issues found. AI summaries may be limited.")
+
+
+@main.command()
+def summary():
+    """Generate summary of current session (without ending it)."""
+    cwd = Path.cwd()
+    db = Database()
+    result = find_project_root(db, cwd)
+
+    if not result:
+        console.print(f"{e('❌')} Project not initialized. Run [bold]devctx init[/bold] first.")
+        return
+
+    project, _ = result
+    session = db.get_active_session(project.id)
+
+    if not session:
+        console.print(f"{e('ℹ️', 'i')} No active session. Use [bold]devctx resume[/bold] to see last session.")
+        return
+
+    # Gather context
+    git = GitCapture(Path(project.path))
+    notes = [n.content for n in db.get_session_notes(session.id)]
+    captures = [c.content for c in db.get_session_captures(session.id)]
+    git_context = ""
+    if git.is_git_repo():
+        ctx = git.capture(since=session.started_at)
+        if ctx:
+            git_context = ctx.to_summary()
+
+    duration = format_duration(session.started_at, datetime.now())
+    console.print(f"\n{e('📊')} Session Summary for [bold]{project.name}[/bold] ({duration})\n")
+
+    # Show notes
+    if notes:
+        console.print(Panel(
+            "\n".join(f"• {n}" for n in notes),
+            title=f"{e('📝')} Notes ({len(notes)})",
+            border_style="yellow"
+        ))
+
+    # Show git activity
+    if git_context:
+        console.print(Panel(
+            git_context,
+            title=f"{e('🔀')} Git Activity",
+            border_style="cyan"
+        ))
+
+    # Generate AI summary
+    summarizer = OllamaSummarizer()
+    if summarizer.is_available():
+        console.print(f"{e('🤖')} Generating AI summary...")
+        ai_summary = summarizer.summarize_session(
+            git_context=git_context,
+            notes=notes,
+            captures=captures,
+            project_name=project.name,
+        )
+        if ai_summary:
+            console.print(Panel(
+                ai_summary,
+                title=f"{e('🧠')} AI Summary",
+                border_style="green"
+            ))
+    else:
+        console.print(f"\n{e('💡')} Tip: Run [bold]devctx doctor[/bold] to check Ollama setup for AI summaries.")
 
 
 @main.command()
