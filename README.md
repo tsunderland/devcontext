@@ -62,14 +62,27 @@ Debug the JWT refresh in src/auth/refresh.ts:45
 
 ## Installation
 
+### Recommended: pipx (isolated install)
+
 ```bash
-# Install with pip
-pip install devcontext
+# Install pipx if you don't have it
+brew install pipx
+pipx ensurepath
 
-# Or with uv (recommended)
-uv pip install devcontext
+# Install devcontext
+pipx install devcontext
+```
 
-# Verify installation
+### Alternative: uv tool
+
+```bash
+# Install with uv (fast, isolated)
+uv tool install devcontext
+```
+
+### Verify installation
+
+```bash
 devctx --version
 ```
 
