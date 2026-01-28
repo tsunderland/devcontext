@@ -64,7 +64,7 @@ Examples:
 
 ## Questions?
 
-Open an issue or reach out to hello@bitfuturistic.com.
+Open an issue or reach out to tsunderland@bitfuturistic.com.
 
 ## License
 

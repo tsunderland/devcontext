@@ -182,7 +182,7 @@ Using DevContext at work? Consider a support subscription to fund continued deve
 - **Pro Support** ($50/mo) - Priority email support, screen share sessions
 - **Enterprise** ($500/mo) - Dedicated Slack channel, custom integrations
 
-Contact: hello@bitfuturistic.com
+Contact: tsunderland@bitfuturistic.com
 
 ## Philosophy
 

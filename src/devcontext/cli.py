@@ -380,7 +380,7 @@ Your support helps fund continued development.
    ko-fi.com/bitfuturistic
 
 {enterprise} Commercial Support
-   hello@bitfuturistic.com
+   tsunderland@bitfuturistic.com
 
 [dim]Every contribution helps, no matter how small![/dim]
 """.format(
