@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "devcontext": {
+      "command": "devctx",
+      "args": ["mcp-serve"],
+      "env": {}
+    }
+  }
+}

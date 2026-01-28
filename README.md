@@ -131,9 +131,12 @@ devctx resume
 | `devctx end` | End session and generate summary |
 | `devctx note <text>` | Add a quick note to current session |
 | `devctx resume` | Get context summary for current project |
+| `devctx summary` | Get mid-session summary (without ending) |
 | `devctx list` | List all tracked projects |
 | `devctx status` | Show current session status |
 | `devctx history` | View session history for project |
+| `devctx doctor` | Check system health and dependencies |
+| `devctx mcp-serve` | Run MCP server for AI tool integrations |
 
 ## Configuration
 
@@ -193,12 +196,46 @@ We believe developer tools should be:
 3. **Simple** - Do one thing well
 4. **Respectful** - No telemetry, no tracking
 
+## AI Tool Integrations
+
+DevContext integrates with AI coding assistants via MCP (Model Context Protocol):
+
+### Claude Code
+
+Add to `~/.claude/settings.json`:
+```json
+{
+  "mcpServers": {
+    "devcontext": {
+      "command": "devctx",
+      "args": ["mcp-serve"]
+    }
+  }
+}
+```
+
+### Goose
+
+Add to `~/.config/goose/config.yaml`:
+```yaml
+mcp_servers:
+  devcontext:
+    command: devctx
+    args: ["mcp-serve"]
+```
+
+### Aider, VS Code, Neovim
+
+See the [integrations](./integrations/) directory for detailed setup guides.
+
 ## Roadmap
 
 - [x] Core CLI with git integration
 - [x] Ollama-powered summaries
-- [ ] VS Code extension
-- [ ] Neovim plugin
+- [x] MCP server for AI tool integration
+- [x] Claude Code / Goose / Aider integration
+- [x] VS Code task integration
+- [x] Neovim plugin
 - [ ] Team sync (opt-in, self-hosted)
 - [ ] Browser extension for research context
 

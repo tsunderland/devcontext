@@ -564,5 +564,19 @@ Your support helps fund continued development.
         webbrowser.open("https://github.com/sponsors/tsunderland")
 
 
+@main.command(name="mcp-serve")
+def mcp_serve():
+    """Run MCP server for AI tool integrations.
+
+    Enables AI coding assistants (Claude Code, Aider, Goose, etc.)
+    to manage DevContext sessions programmatically.
+
+    Configure your AI tool to connect via stdio:
+        devctx mcp-serve
+    """
+    from .integrations.mcp_server import main as mcp_main
+    mcp_main()
+
+
 if __name__ == "__main__":
     main()

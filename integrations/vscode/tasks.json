@@ -1,0 +1,72 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "DevContext: Start Session",
+      "type": "shell",
+      "command": "devctx start",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "DevContext: End Session",
+      "type": "shell",
+      "command": "devctx end",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "DevContext: Add Note",
+      "type": "shell",
+      "command": "devctx note \"${input:noteText}\"",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "DevContext: Resume",
+      "type": "shell",
+      "command": "devctx resume",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "DevContext: Status",
+      "type": "shell",
+      "command": "devctx status",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "DevContext: Summary",
+      "type": "shell",
+      "command": "devctx summary",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "noteText",
+      "type": "promptString",
+      "description": "Enter note text"
+    }
+  ]
+}
