@@ -136,7 +136,11 @@ class Database:
                 "INSERT INTO sessions (project_id, started_at) VALUES (?, ?)",
                 (project_id, now)
             )
-            self.update_project_activity(project_id)
+            # Update project activity in same transaction to avoid lock
+            conn.execute(
+                "UPDATE projects SET last_active = ? WHERE id = ?",
+                (now, project_id)
+            )
             return Session(
                 id=cursor.lastrowid,
                 project_id=project_id,
